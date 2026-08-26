@@ -1,0 +1,334 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
+# Load the data
+df = pd.read_csv("House Price.csv")
+
+print("="*60)
+print("DELIVERABLE 24: Basic EDA and Data Types")
+print("="*60)
+
+# 24. Perform basic EDA and inspect data types
+print("\nDataset Shape:", df.shape)
+print("\nColumn Data Types:")
+print(df.dtypes)
+print("\nFirst 5 rows:")
+print(df.head())
+print("\nSummary Statistics:")
+print(df.describe())
+print("\nDataset Info:")
+print(df.info())
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 25: Find Missing Values and Duplicate Rows")
+print("="*60)
+
+# 25. Find missing values and duplicate rows
+print("\nMissing Values per Column:")
+print(df.isnull().sum())
+print(f"\nTotal Missing Values: {df.isnull().sum().sum()}")
+
+print(f"\nNumber of Duplicate Rows: {df.duplicated().sum()}")
+if df.duplicated().sum() > 0:
+    print("\nDuplicate Rows:")
+    print(df[df.duplicated()])
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 26: Identify Impossible Values")
+print("="*60)
+
+# 26. Identify impossible values such as negative area and unreasonable bedroom counts
+print("\nChecking for Negative Values:")
+negative_area = df[df['area_sqft'] < 0]
+negative_bedrooms = df[df['bedrooms'] < 0]
+negative_age = df[df['age_years'] < 0]
+negative_distance = df[df['distance_city_km'] < 0]
+negative_price = df[df['price_lakh'] < 0]
+
+print(f"Negative area_sqft: {len(negative_area)} rows")
+print(f"Negative bedrooms: {len(negative_bedrooms)} rows")
+print(f"Negative age_years: {len(negative_age)} rows")
+print(f"Negative distance_city_km: {len(negative_distance)} rows")
+print(f"Negative price_lakh: {len(negative_price)} rows")
+
+print("\nChecking for Unreasonable Bedroom Counts:")
+unreasonable_bedrooms = df[(df['bedrooms'] < 0) | (df['bedrooms'] > 10)]
+print(f"Unreasonable bedroom counts (0-10 expected): {len(unreasonable_bedrooms)} rows")
+if len(unreasonable_bedrooms) > 0:
+    print(unreasonable_bedrooms[['bedrooms']].value_counts().sort_index())
+
+print("\nChecking for Unreasonable Area (0-10,000 sqft expected):")
+unreasonable_area = df[(df['area_sqft'] < 0) | (df['area_sqft'] > 10000)]
+print(f"Unreasonable area: {len(unreasonable_area)} rows")
+
+print("\nChecking for Unreasonable Age (0-100 years expected):")
+unreasonable_age = df[(df['age_years'] < 0) | (df['age_years'] > 100)]
+print(f"Unreasonable age: {len(unreasonable_age)} rows")
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 27: Find Price Outliers")
+print("="*60)
+
+# 27. Find price outliers using IQR method
+Q1 = df['price_lakh'].quantile(0.25)
+Q3 = df['price_lakh'].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+price_outliers = df[(df['price_lakh'] < lower_bound) | (df['price_lakh'] > upper_bound)]
+
+print(f"\nPrice Statistics:")
+print(f"Q1 (25th percentile): {Q1:.2f}")
+print(f"Q3 (75th percentile): {Q3:.2f}")
+print(f"IQR: {IQR:.2f}")
+print(f"Lower Bound: {lower_bound:.2f}")
+print(f"Upper Bound: {upper_bound:.2f}")
+print(f"\nNumber of Price Outliers: {len(price_outliers)}")
+print(f"Percentage of Outliers: {(len(price_outliers)/len(df))*100:.2f}%")
+
+if len(price_outliers) > 0:
+    print("\nPrice Outlier Values:")
+    print(price_outliers['price_lakh'].sort_values())
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 28: Plot Area and Price Distributions")
+print("="*60)
+
+# 28. Plot area and price distributions
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+# Area distribution
+axes[0, 0].hist(df['area_sqft'], bins=30, edgecolor='black', alpha=0.7)
+axes[0, 0].set_title('Area Distribution (sqft)')
+axes[0, 0].set_xlabel('Area (sqft)')
+axes[0, 0].set_ylabel('Frequency')
+
+# Area boxplot
+axes[0, 1].boxplot(df['area_sqft'])
+axes[0, 1].set_title('Area Boxplot')
+axes[0, 1].set_ylabel('Area (sqft)')
+
+# Price distribution
+axes[1, 0].hist(df['price_lakh'], bins=30, edgecolor='black', alpha=0.7, color='orange')
+axes[1, 0].set_title('Price Distribution (Lakhs)')
+axes[1, 0].set_xlabel('Price (Lakhs)')
+axes[1, 0].set_ylabel('Frequency')
+
+# Price boxplot
+axes[1, 1].boxplot(df['price_lakh'])
+axes[1, 1].set_title('Price Boxplot')
+axes[1, 1].set_ylabel('Price (Lakhs)')
+
+plt.tight_layout()
+plt.show()
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 29: Analyze Area vs Price, Bedrooms vs Price, Age vs Price")
+print("="*60)
+
+# 29. Analyze area vs price, bedrooms vs price, and age vs price
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+# Area vs Price
+axes[0].scatter(df['area_sqft'], df['price_lakh'], alpha=0.6)
+axes[0].set_xlabel('Area (sqft)')
+axes[0].set_ylabel('Price (Lakhs)')
+axes[0].set_title(f'Area vs Price (Correlation: {df["area_sqft"].corr(df["price_lakh"]):.3f})')
+
+# Bedrooms vs Price
+axes[1].scatter(df['bedrooms'], df['price_lakh'], alpha=0.6)
+axes[1].set_xlabel('Bedrooms')
+axes[1].set_ylabel('Price (Lakhs)')
+axes[1].set_title(f'Bedrooms vs Price (Correlation: {df["bedrooms"].corr(df["price_lakh"]):.3f})')
+
+# Age vs Price
+axes[2].scatter(df['age_years'], df['price_lakh'], alpha=0.6)
+axes[2].set_xlabel('Age (Years)')
+axes[2].set_ylabel('Price (Lakhs)')
+axes[2].set_title(f'Age vs Price (Correlation: {df["age_years"].corr(df["price_lakh"]):.3f})')
+
+plt.tight_layout()
+plt.show()
+
+# Additional: Boxplot for bedrooms vs price
+plt.figure(figsize=(10, 6))
+df.boxplot(column='price_lakh', by='bedrooms')
+plt.title('Price Distribution by Number of Bedrooms')
+plt.suptitle('')
+plt.xlabel('Bedrooms')
+plt.ylabel('Price (Lakhs)')
+plt.show()
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 30: Create a Correlation Heatmap")
+print("="*60)
+
+# 30. Create a correlation heatmap
+plt.figure(figsize=(10, 8))
+correlation_matrix = df.corr()
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.3f', 
+            square=True, linewidths=0.5)
+plt.title('Correlation Heatmap of All Features')
+plt.show()
+
+print("\nCorrelation with Target (price_lakh):")
+print(correlation_matrix['price_lakh'].sort_values(ascending=False))
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 31: Clean Duplicates, Invalid Values, and Missing Values")
+print("="*60)
+
+# 31. Clean duplicates, invalid values, and missing values
+df_cleaned = df.copy()
+print(f"Original dataset shape: {df_cleaned.shape}")
+
+# Remove duplicates
+df_cleaned = df_cleaned.drop_duplicates()
+print(f"After removing duplicates: {df_cleaned.shape}")
+
+# Remove rows with negative values
+invalid_conditions = (df_cleaned['area_sqft'] < 0) | \
+                     (df_cleaned['bedrooms'] < 0) | \
+                     (df_cleaned['bedrooms'] > 10) | \
+                     (df_cleaned['age_years'] < 0) | \
+                     (df_cleaned['distance_city_km'] < 0) | \
+                     (df_cleaned['price_lakh'] < 0)
+
+df_cleaned = df_cleaned[~invalid_conditions]
+print(f"After removing invalid values: {df_cleaned.shape}")
+
+# Handle missing values (if any)
+missing_before = df_cleaned.isnull().sum().sum()
+if missing_before > 0:
+    # For numerical columns, fill with median
+    for col in df_cleaned.columns:
+        if df_cleaned[col].dtype in ['int64', 'float64']:
+            df_cleaned[col] = df_cleaned[col].fillna(df_cleaned[col].median())
+    print(f"Filled {missing_before} missing values with median")
+else:
+    print("No missing values found")
+
+print(f"\nFinal cleaned dataset shape: {df_cleaned.shape}")
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 32: Create price_per_sqft")
+print("="*60)
+
+# 32. Create price_per_sqft
+df_cleaned['price_per_sqft'] = df_cleaned['price_lakh'] / df_cleaned['area_sqft']
+print("\nprice_per_sqft created successfully!")
+print(f"price_per_sqft statistics:")
+print(df_cleaned['price_per_sqft'].describe())
+
+# Visualize price_per_sqft
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+plt.hist(df_cleaned['price_per_sqft'], bins=30, edgecolor='black', alpha=0.7)
+plt.xlabel('Price per sqft (Lakhs)')
+plt.ylabel('Frequency')
+plt.title('Price per sqft Distribution')
+
+plt.subplot(1, 2, 2)
+plt.boxplot(df_cleaned['price_per_sqft'])
+plt.ylabel('Price per sqft (Lakhs)')
+plt.title('Price per sqft Boxplot')
+
+plt.tight_layout()
+plt.show()
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 33: Create One Additional Meaningful Feature")
+print("="*60)
+
+# 33. Create one additional meaningful feature
+# Option 1: Total rooms (assuming there might be other rooms not counted)
+# Note: Since we don't have other room data, let's create a different feature
+
+# Feature: Age category (New, Old, Very Old)
+df_cleaned['age_category'] = pd.cut(df_cleaned['age_years'], 
+                                    bins=[-1, 5, 20, 100], 
+                                    labels=['New (0-5 yrs)', 'Moderate (5-20 yrs)', 'Old (20+ yrs)'])
+
+# Feature: Size category
+df_cleaned['size_category'] = pd.cut(df_cleaned['area_sqft'], 
+                                     bins=[-1, 1000, 2000, 5000, 10000], 
+                                     labels=['Small', 'Medium', 'Large', 'Mansion'])
+
+# Feature: Distance category
+df_cleaned['distance_category'] = pd.cut(df_cleaned['distance_city_km'], 
+                                         bins=[-1, 5, 15, 50], 
+                                         labels=['City Center', 'Suburban', 'Rural'])
+
+# Feature: Age * Area interaction
+df_cleaned['age_area_interaction'] = df_cleaned['age_years'] * df_cleaned['area_sqft']
+
+# Feature: Value score (combining multiple features)
+# Normalize features and create a composite score
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+normalized_features = scaler.fit_transform(df_cleaned[['area_sqft', 'bedrooms', 'price_per_sqft']])
+df_cleaned['property_score'] = normalized_features.mean(axis=1)
+
+print("\nCreated new features:")
+print(f"1. age_category: {'New (0-5 yrs)', 'Moderate (5-20 yrs)', 'Old (20+ yrs)'}")
+print(f"2. size_category: {'Small', 'Medium', 'Large', 'Mansion'}")
+print(f"3. distance_category: {'City Center', 'Suburban', 'Rural'}")
+print(f"4. age_area_interaction: age_years * area_sqft")
+print(f"5. property_score: Composite score of area, bedrooms, and price_per_sqft")
+
+print("\nSample of new features:")
+print(df_cleaned[['age_years', 'age_category', 'area_sqft', 'size_category', 
+                  'distance_city_km', 'distance_category', 'age_area_interaction', 
+                  'property_score']].head())
+
+
+print("\n" + "="*60)
+print("DELIVERABLE 34: Use price_lakh as Target, Separate X and y")
+print("="*60)
+
+# 34. Use price_lakh as the target and separate X and y
+# Select features (exclude target and categorical for now)
+features = ['area_sqft', 'bedrooms', 'age_years', 'distance_city_km', 
+            'price_per_sqft', 'age_area_interaction', 'property_score']
+
+X = df_cleaned[features]
+y = df_cleaned['price_lakh']
+
+print(f"\nFeatures (X) shape: {X.shape}")
+print(f"Target (y) shape: {y.shape}")
+
+print("\nFeatures used:")
+print(X.columns.tolist())
+
+print(f"\nTarget variable: price_lakh")
+print(f"Target statistics:")
+print(y.describe())
+
+# Save cleaned dataset for future use
+df_cleaned.to_csv('House_Price_Cleaned.csv', index=False)
+print("\n✅ Cleaned dataset saved as 'House_Price_Cleaned.csv'")
+
+print("\n" + "="*60)
+print("ALL DELIVERABLES COMPLETED SUCCESSFULLY! 🎉")
+print("="*60)
+
+# Bonus: Show final dataset overview
+print("\nFinal Dataset Overview:")
+print(f"Total rows: {len(df_cleaned)}")
+print(f"Total columns: {len(df_cleaned.columns)}")
+print(f"Columns: {df_cleaned.columns.tolist()}")
+print(f"\nMissing values in final dataset: {df_cleaned.isnull().sum().sum()}")
